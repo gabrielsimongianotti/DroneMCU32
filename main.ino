@@ -1,22 +1,50 @@
-
-//#include <Wire.h>
 #include <SFE_MMA8452Q.h>
 #include <Servo.h>
-Servo ESC;
+Servo rearLeftEngine;
+Servo rearRightEngine;
+Servo frontLeftEngine;
+Servo frontRightEngine;
 
 MMA8452Q acelerometro(0x1C);
-
+int speed = 180;
 void setup()
 {
   Serial.begin(9600);
-  ESC.attach(9, 1000, 2000);
+  rearLeftEngine.attach(9, 1000, 2000);
+
+  frontLeftEngine.attach(6, 1000, 2000);
+  rearRightEngine.attach(5, 1000, 2000);
+  frontRightEngine.attach(3, 1000, 2000);
   Serial.println("Teste de comunicacao MMA8452");
   acelerometro.init();
-  ESC.write(0);
+  rearLeftEngine.write(0);
+  rearRightEngine.write(0);
+  frontLeftEngine.write(0);
+  frontRightEngine.write(0);
 }
 
 void loop()
 {
+  
+//
+//  for(int i = 0; i < 180; i ++){
+//   Serial.println(i);
+//   rearLeftEngine.write(i);
+//   rearRightEngine.write(i);
+//   frontLeftEngine.write(i);
+//   frontRightEngine.write(i);
+//   delay(100);
+//  }
+//  for(int i = 180; i > 0; i --){
+//   Serial.println(i);
+//   rearLeftEngine.write(i);
+//   rearRightEngine.write(i);
+//   frontLeftEngine.write(i);
+//   frontRightEngine.write(i);
+//   delay(100);
+//  }
+//  delay(5000);
+
   //A linha abaixo aguarda o envio de novos dados pelo acelerometro
   if (acelerometro.available())
   {
@@ -31,9 +59,9 @@ void loop()
     
     //Mostra as coordenadas lidas do sensor
 //    printCalculatedAccels();
-    delay(100);
+//    delay(100);
     //Selecione a linha abaixo para mostra os valores digitais
-    printCalculatedAccels();
+    stabilizeFlight();
     
     //Mostra a orientacao (retrato/paisagem/flat)
     Serial.println();
@@ -67,6 +95,21 @@ void printOrientation()
     Serial.print("Plano");
     break;
   }
+}
+
+void stabilizeFlight()
+{
+  int x = acelerometro.cx * speed;
+  if(x > 0) {
+    Serial.print("x não é negativo");
+    rearLeftEngine.write(x);
+    rearRightEngine.write(x);
+    Serial.println(x);
+  }
+  if(x < 0) {
+    Serial.print("x  é negativo");
+  }
+  
 }
 
 void printCalculatedAccels()
