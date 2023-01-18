@@ -6,12 +6,12 @@ Servo frontLeftEngine;
 Servo frontRightEngine;
 
 MMA8452Q acelerometro(0x1C);
-int speed = 180;
+int speed = 50;
+int maxSpeed = 180;
 void setup()
 {
   Serial.begin(9600);
   rearLeftEngine.attach(9, 1000, 2000);
-
   frontLeftEngine.attach(6, 1000, 2000);
   rearRightEngine.attach(5, 1000, 2000);
   frontRightEngine.attach(3, 1000, 2000);
@@ -27,6 +27,7 @@ void loop()
 {
   
 //
+//  delay(5000);
 //  for(int i = 0; i < 180; i ++){
 //   Serial.println(i);
 //   rearLeftEngine.write(i);
@@ -64,7 +65,7 @@ void loop()
     stabilizeFlight();
     
     //Mostra a orientacao (retrato/paisagem/flat)
-    Serial.println();
+//    Serial.println();
   }
 }
 
@@ -99,17 +100,52 @@ void printOrientation()
 
 void stabilizeFlight()
 {
-  int x = acelerometro.cx * speed;
-  if(x > 0) {
-    Serial.print("x não é negativo");
-    rearLeftEngine.write(x);
-    rearRightEngine.write(x);
-    Serial.println(x);
-  }
-  if(x < 0) {
-    Serial.print("x  é negativo");
-  }
-  
+   int x = acelerometro.cx * 100;
+   int y = acelerometro.cy * 100;
+//   delay(100);
+   Serial.print(x);
+   Serial.print("x ");
+   Serial.print(y);
+   Serial.print("y ");
+//  if(x > 0) {
+//    Serial.print("x não é negativo");
+//    rearLeftEngine.write(x);
+//    rearRightEngine.write(x);
+//    Serial.println(x);
+//  }
+    if(x < 0 && y < 0) {
+      Serial.print("rear left ");
+      Serial.print( (-1*x+100) * speed/100);
+      rearLeftEngine.write((x+100) * speed/100);
+      rearRightEngine.write(speed);
+      frontLeftEngine.write(speed);
+      frontRightEngine.write(speed);
+    }
+    else if(x > 0 && y < 0) {
+      Serial.print("rear right ");
+      Serial.print( (x+100) * speed/100);
+      rearLeftEngine.write(speed);
+      rearRightEngine.write((x+100) * speed/100);
+      frontLeftEngine.write(speed);
+      frontRightEngine.write(speed);
+    }
+     else if(x < 0 && y > 0) {
+      Serial.print("front left ");
+      Serial.print((-1 * x+100) * speed/100);
+      rearLeftEngine.write(speed);
+      rearRightEngine.write(speed);
+      frontLeftEngine.write((x+100) * speed/100);
+      frontRightEngine.write(speed);
+    }
+     else if(x > 0 && y > 0) {
+      Serial.print("front right ");
+      Serial.print((x+100) * speed/100);
+      rearLeftEngine.write(speed);
+      rearRightEngine.write(speed);
+      frontLeftEngine.write(speed);
+      frontRightEngine.write((x+100) * speed/100);
+    }
+  Serial.println();  
 }
 
 void printCalculatedAccels()
