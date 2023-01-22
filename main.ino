@@ -6,8 +6,9 @@ Servo frontLeftEngine;
 Servo frontRightEngine;
 
 MMA8452Q acelerometro(0x1C);
-int speed = 50;
+int speed = 80;
 int maxSpeed = 180;
+#define pauseButton 13
 void setup()
 {
   Serial.begin(9600);
@@ -15,146 +16,118 @@ void setup()
   frontLeftEngine.attach(6, 1000, 2000);
   rearRightEngine.attach(5, 1000, 2000);
   frontRightEngine.attach(3, 1000, 2000);
-  Serial.println("Teste de comunicacao MMA8452");
-  acelerometro.init();
   rearLeftEngine.write(0);
   rearRightEngine.write(0);
   frontLeftEngine.write(0);
   frontRightEngine.write(0);
+  Serial.println("on drone");
+  acelerometro.init();
+
+  pinMode(pauseButton, INPUT_PULLUP);
 }
 
 void loop()
 {
-  
-//
-//  delay(5000);
-//  for(int i = 0; i < 180; i ++){
-//   Serial.println(i);
-//   rearLeftEngine.write(i);
-//   rearRightEngine.write(i);
-//   frontLeftEngine.write(i);
-//   frontRightEngine.write(i);
-//   delay(100);
-//  }
-//  for(int i = 180; i > 0; i --){
-//   Serial.println(i);
-//   rearLeftEngine.write(i);
-//   rearRightEngine.write(i);
-//   frontLeftEngine.write(i);
-//   frontRightEngine.write(i);
-//   delay(100);
-//  }
-//  delay(5000);
-
-  //A linha abaixo aguarda o envio de novos dados pelo acelerometro
-  if (acelerometro.available())
+  if (acelerometro.available() )
   {
-    //Efetua a leitura dos dados do sensor
     acelerometro.read();
-    //acelerometro.read() atualiza dois grupos de variaveis:
-    //* int x, y, e z armazena o valor de 12 bits lido do
-    //acelerometro
-    // * float cx, cy, e cz armazena o calculo da aceleracao
-    //dos valores de 12 bits. Essas variaveis estao em
-    //unidades de "g"
-    
-    //Mostra as coordenadas lidas do sensor
-//    printCalculatedAccels();
-//    delay(100);
-    //Selecione a linha abaixo para mostra os valores digitais
-    stabilizeFlight();
-    
-    //Mostra a orientacao (retrato/paisagem/flat)
-//    Serial.println();
+   
+    for(int i = 0; i <= speed; i ++){
+      int engine= i;
+      acelerometro.read();
+      up(engine);
+      int pauseMotor = digitalRead(pauseButton);
+      if(pauseMotor==0){
+        rearLeftEngine.write(0);
+        rearRightEngine.write(0);
+        frontLeftEngine.write(0);
+        frontRightEngine.write(0);
+        Serial.println(pauseMotor);
+        Serial.println("clicou no botão");
+        delay(200000);
+      }
+      delay(100);+
+    }
+    delay(5000);
+    for(int i = speed; i > 0; i --){
+      int engine= i;
+      acelerometro.read();
+      up(engine);
+      int pauseMotor = digitalRead(pauseButton);
+      if(pauseMotor==0){  
+        rearLeftEngine.write(0);
+        rearRightEngine.write(0);
+        frontLeftEngine.write(0);
+        frontRightEngine.write(0);
+        Serial.println(pauseMotor);
+        Serial.println("clicou no botão");
+        delay(200000);
+      }
+//     delay(100);
+    }
   }
 }
 
-void printOrientation()
-{
-  //acelerometro.readPL() retorna um byte contendo informacoes sobre
-  //a orientacao do sensor (retrato/paisagem)
-  //PORTRAIT_U (Retrato Up/Para cima), PORTRAIT_D (Retrato Down/Para Baixo), 
-  //LANDSCAPE_R (Paisagem right/direita), LANDSCAPE_L (Paisagem left/esquerda)
-  //e LOCKOUT (bloqueio)
-  byte pl = acelerometro.readPL();
-  
-  switch (pl)
-  {
-  case PORTRAIT_U:
-    Serial.print("Retrato Para Cima");
-    break;
-  case PORTRAIT_D:
-    Serial.print("Retrato Para Baixo");
-    break;
-  case LANDSCAPE_R:
-    Serial.print("Paisagem Direita");
-    break;
-  case LANDSCAPE_L:
-    Serial.print("Paisagem Esquerda");
-    break;
-  case LOCKOUT:
-    Serial.print("Plano");
-    break;
-  }
-}
-
-void stabilizeFlight()
+void stabilizeFlight(int speedMotor)
 {
    int x = acelerometro.cx * 100;
    int y = acelerometro.cy * 100;
-//   delay(100);
-   Serial.print(x);
-   Serial.print("x ");
-   Serial.print(y);
-   Serial.print("y ");
-//  if(x > 0) {
-//    Serial.print("x não é negativo");
-//    rearLeftEngine.write(x);
-//    rearRightEngine.write(x);
-//    Serial.println(x);
-//  }
-    if(x < 0 && y < 0) {
+   int speedRearMotor = speedMotor + 10;
+//   Serial.print(x);
+//   Serial.print("x ");
+//   Serial.print(y);
+//   Serial.print("y ");
+//  Serial.print(speedMotor);
+    if(x < 10 && y < 10) {
       Serial.print("rear left ");
-      Serial.print( (-1*x+100) * speed/100);
-      rearLeftEngine.write((x+100) * speed/100);
-      rearRightEngine.write(speed);
-      frontLeftEngine.write(speed);
-      frontRightEngine.write(speed);
+      Serial.print( (-1 * x + 100) * speedMotor / 100);
+      rearLeftEngine.write((-1 * x + 100) * speedRearMotor / 100);
+      rearRightEngine.write(speedRearMotor);
+      frontLeftEngine.write(speedMotor);
+      frontRightEngine.write(speedMotor);
     }
-    else if(x > 0 && y < 0) {
+    else if(x > 10 && y < 10) {
       Serial.print("rear right ");
-      Serial.print( (x+100) * speed/100);
-      rearLeftEngine.write(speed);
-      rearRightEngine.write((x+100) * speed/100);
-      frontLeftEngine.write(speed);
-      frontRightEngine.write(speed);
+      Serial.print( (x+100) * speedMotor/100);
+      rearLeftEngine.write(speedRearMotor);
+      rearRightEngine.write((x+100) * speedRearMotor/100);
+      frontLeftEngine.write(speedMotor);
+      frontRightEngine.write(speedMotor);
     }
-     else if(x < 0 && y > 0) {
+     else if(x < 10 && y > 10) {
       Serial.print("front left ");
-      Serial.print((-1 * x+100) * speed/100);
-      rearLeftEngine.write(speed);
-      rearRightEngine.write(speed);
-      frontLeftEngine.write((x+100) * speed/100);
-      frontRightEngine.write(speed);
+      Serial.print((-1 * x + 100) * speedMotor / 100);
+      Serial.print(" front right ");
+      Serial.print((x+100) * speedMotor/100);
+      Serial.print(" speedMotor:");
+      Serial.print(speedMotor);
+      rearLeftEngine.write(speedRearMotor);
+      rearRightEngine.write(speedRearMotor);
+      frontLeftEngine.write((-1 * x + 100) * speedMotor / 100);
+      frontRightEngine.write(speedMotor);
     }
-     else if(x > 0 && y > 0) {
+     else if(x > 10 && y > 10) {
       Serial.print("front right ");
-      Serial.print((x+100) * speed/100);
-      rearLeftEngine.write(speed);
-      rearRightEngine.write(speed);
-      frontLeftEngine.write(speed);
-      frontRightEngine.write((x+100) * speed/100);
+      Serial.print((x+100) * speedMotor/100);
+      Serial.print(" speedMotor:");
+      Serial.print(speedMotor);
+      rearLeftEngine.write(speedRearMotor);
+      rearRightEngine.write(speedRearMotor);
+      frontLeftEngine.write(speedMotor);
+      frontRightEngine.write((x+100) * speedMotor/100);
     }
-  Serial.println();  
+  Serial.println("speedMotor");  
 }
 
-void printCalculatedAccels()
+void up(int speedMotor)
 { 
-  Serial.print("x ");
-  Serial.print(acelerometro.cx);
-  Serial.print(" y");
-  Serial.print(acelerometro.cy);
-  Serial.print(" z");
-  Serial.print(acelerometro.cz);
-
+  int speedRearMotor = speedMotor + 17;
+  Serial.print("front engine: ");
+  Serial.print(speedMotor);
+  Serial.print(" Rear Engine: ");
+  Serial.println(speedRearMotor);
+  rearLeftEngine.write(speedRearMotor);
+  rearRightEngine.write(speedRearMotor);
+  frontLeftEngine.write(speedMotor);
+  frontRightEngine.write(speedMotor);
 }
