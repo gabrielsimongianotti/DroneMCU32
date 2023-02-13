@@ -1,14 +1,23 @@
-#include <SFE_MMA8452Q.h>
+#include <MPU6050_tockn.h>
+#include <Wire.h>
 #include <Servo.h>
+
 Servo rearLeftEngine;
 Servo rearRightEngine;
 Servo frontLeftEngine;
 Servo frontRightEngine;
+MPU6050 mpu6050(Wire);
 
-MMA8452Q acelerometro(0x1C);
-int speed = 80;
-int maxSpeed = 180;
 #define pauseButton 13
+#define MPU6050_ADDR 0x69 
+
+float anguloX;
+float anguloY;
+float anguloZ;
+int speed = 30;
+int maxSpeed = 180;
+boolean activeMotor = HIGH;
+
 void setup()
 {
   Serial.begin(9600);
@@ -21,107 +30,112 @@ void setup()
   frontLeftEngine.write(0);
   frontRightEngine.write(0);
   Serial.println("on drone");
-  acelerometro.init();
+  Wire.begin();
+  mpu6050.begin();
 
   pinMode(pauseButton, INPUT_PULLUP);
 }
 
 void loop()
 {
-  if (acelerometro.available() )
-  {
-    acelerometro.read();
+
    
-    for(int i = 0; i <= speed; i ++){
-      int engine= i;
-      acelerometro.read();
-      up(engine);
+//    for(int i = 0; i <= speed; i ++){
+//      int engine= i;
+//      acelerometro.read();
+      
       int pauseMotor = digitalRead(pauseButton);
       if(pauseMotor==0){
-        rearLeftEngine.write(0);
-        rearRightEngine.write(0);
-        frontLeftEngine.write(0);
-        frontRightEngine.write(0);
-        Serial.println(pauseMotor);
-        Serial.println("clicou no botão");
-        delay(200000);
+        Serial.print("printMotor");
+        Serial.println(activeMotor);
+//        if(activeMotor){
+          activeMotor = LOW;
+//        } else {
+//          activeMotor = true;
+//        }
       }
-      delay(100);+
-    }
-    delay(5000);
-    for(int i = speed; i > 0; i --){
-      int engine= i;
-      acelerometro.read();
-      up(engine);
-      int pauseMotor = digitalRead(pauseButton);
-      if(pauseMotor==0){  
-        rearLeftEngine.write(0);
-        rearRightEngine.write(0);
-        frontLeftEngine.write(0);
-        frontRightEngine.write(0);
-        Serial.println(pauseMotor);
-        Serial.println("clicou no botão");
-        delay(200000);
+      else{
+        stabilizeFlight(speed);
       }
-//     delay(100);
-    }
-  }
+//      delay(100);
+//    }
+//    delay(5000);
+//    for(int i = speed; i > 0; i --){
+//      int engine= i;
+//      acelerometro.read();
+//      stabilizeFlight(engine);
+//      int pauseMotor = digitalRead(pauseButton);
+//      if(pauseMotor==0){  
+//        rearLeftEngine.write(0);
+//        rearRightEngine.write(0);
+//        frontLeftEngine.write(0);
+//        frontRightEngine.write(0);
+//        Serial.println(pauseMotor);
+//        Serial.println("clicou no botão");
+//        delay(20000000);
+//      }
+////     delay(100);
+//    }
+  
 }
 
 void stabilizeFlight(int speedMotor)
 {
-   int x = acelerometro.cx * 100;
-   int y = acelerometro.cy * 100;
-   int speedRearMotor = speedMotor + 10;
-//   Serial.print(x);
-//   Serial.print("x ");
-//   Serial.print(y);
-//   Serial.print("y ");
-//  Serial.print(speedMotor);
-    if(x < 10 && y < 10) {
+    mpu6050.update();
+  
+    int x = mpu6050.getAngleX();
+    int y = mpu6050.getAngleY();
+    anguloZ = mpu6050.getAngleZ();
+    int speedRearMotor = speedMotor + 10;
+    Serial.print(x);
+    Serial.print("x ");
+    Serial.print(y);
+    Serial.print("y ");
+    Serial.print(speedMotor);
+    if(x < 10 && y < 10 && activeMotor == HIGH) {
       Serial.print("rear left ");
-      Serial.print( (-1 * x + 100) * speedMotor / 100);
-      rearLeftEngine.write((-1 * x + 100) * speedRearMotor / 100);
+//      Serial.print(5+speedRearMotor);//(-1 * x + 100) * speedMotor / 100);
+      rearLeftEngine.write(5 + speedRearMotor);
       rearRightEngine.write(speedRearMotor);
       frontLeftEngine.write(speedMotor);
       frontRightEngine.write(speedMotor);
     }
-    else if(x > 10 && y < 10) {
+    else if(x > 10 && y < 10 && activeMotor == HIGH) {
       Serial.print("rear right ");
-      Serial.print( (x+100) * speedMotor/100);
+//      Serial.print(5 + speedRearMotor);
       rearLeftEngine.write(speedRearMotor);
-      rearRightEngine.write((x+100) * speedRearMotor/100);
+      rearRightEngine.write(5+speedRearMotor);
       frontLeftEngine.write(speedMotor);
       frontRightEngine.write(speedMotor);
     }
-     else if(x < 10 && y > 10) {
-      Serial.print("front left ");
-      Serial.print((-1 * x + 100) * speedMotor / 100);
-      Serial.print(" front right ");
-      Serial.print((x+100) * speedMotor/100);
-      Serial.print(" speedMotor:");
-      Serial.print(speedMotor);
+     else if(x < 10 && y > 10 && activeMotor == HIGH) {
+     Serial.print("front left ");
+//      Serial.print((-1 * x + 100) * speedMotor / 100);
+//      Serial.print(" front right ");
+//      Serial.print((x+100) * speedMotor/100);
+//      Serial.print(" speedMotor:");
+//      Serial.print(speedMotor);
       rearLeftEngine.write(speedRearMotor);
       rearRightEngine.write(speedRearMotor);
-      frontLeftEngine.write((-1 * x + 100) * speedMotor / 100);
+      frontLeftEngine.write(5 + speedMotor);
       frontRightEngine.write(speedMotor);
     }
-     else if(x > 10 && y > 10) {
+     else if(x > 10 && y > 10 && activeMotor == HIGH) {
       Serial.print("front right ");
-      Serial.print((x+100) * speedMotor/100);
-      Serial.print(" speedMotor:");
-      Serial.print(speedMotor);
+//      Serial.print(5 + speedMotor);
+//      Serial.print(" speedMotor:");
+//      Serial.print(speedMotor);
       rearLeftEngine.write(speedRearMotor);
       rearRightEngine.write(speedRearMotor);
       frontLeftEngine.write(speedMotor);
-      frontRightEngine.write((x+100) * speedMotor/100);
+      frontRightEngine.write(5 + speedMotor);
     }
-  Serial.println("speedMotor");  
+  Serial.println();  
 }
 
 void up(int speedMotor)
 { 
-  int speedRearMotor = speedMotor + 17;
+  int speedRearMotor = speedMotor + 10;
   Serial.print("front engine: ");
   Serial.print(speedMotor);
   Serial.print(" Rear Engine: ");
